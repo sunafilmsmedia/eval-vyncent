@@ -3,7 +3,7 @@
 
 @theme {
   --font-serif: "Instrument Serif", Georgia, "Times New Roman", serif;
-  --font-sans: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --font-sans: "DM Sans", "Elza", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 
   --color-ink-950: #050b1a;
   --color-ink-900: #0a1226;
@@ -64,6 +64,29 @@ body {
 
 @utility text-balance {
   text-wrap: balance;
+}
+
+/* AI shimmer — dégradé multicolore lent, reste doux */
+@keyframes ai-shimmer {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+.ai-shimmer {
+  background-image: linear-gradient(
+    90deg,
+    #8aaeff 0%,
+    #c9a96e 18%,
+    #b7a6ff 36%,
+    #8aaeff 54%,
+    #f2b9d5 72%,
+    #8aaeff 100%
+  );
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: ai-shimmer 8s linear infinite;
 }
 
 /* Pulse dot */

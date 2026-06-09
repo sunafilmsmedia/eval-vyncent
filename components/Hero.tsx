@@ -37,9 +37,9 @@ export default function Hero({ onStart }: HeroProps) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.4, duration: 0.8 }}
-          className="mt-8 font-serif italic text-xl sm:text-2xl text-[var(--color-brand-300)]"
+          className="mt-8 font-serif italic text-xl sm:text-2xl ai-shimmer inline-block"
         >
-          Boosté par l&apos;intelligence artificielle
+          Boosté par l&apos;IA
         </motion.p>
 
         {/* Divider doré */}

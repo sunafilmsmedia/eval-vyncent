@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
-import { Geist, Instrument_Serif } from "next/font/google";
+import { DM_Sans, Instrument_Serif } from "next/font/google";
 import "./globals.css";
 
-const geist = Geist({
+const dmSans = DM_Sans({
   subsets: ["latin"],
   variable: "--font-sans",
   display: "swap",
@@ -30,7 +30,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr-CA" className={`${geist.variable} ${instrumentSerif.variable}`}>
+    <html lang="fr-CA" className={`${dmSans.variable} ${instrumentSerif.variable}`}>
       <body className="min-h-screen antialiased">{children}</body>
     </html>
   );
