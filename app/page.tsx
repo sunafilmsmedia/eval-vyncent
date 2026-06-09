@@ -92,8 +92,20 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* Badge courtier toujours visible */}
-      <BrokerBadge />
+      {/* Badge courtier — visible sur le hero et les résultats, masqué pendant le formulaire */}
+      <AnimatePresence>
+        {(stage === "hero" || stage === "results") && (
+          <motion.div
+            key="broker-badge"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.4 }}
+          >
+            <BrokerBadge />
+          </motion.div>
+        )}
+      </AnimatePresence>
     </main>
   );
 }
