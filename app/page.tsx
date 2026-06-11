@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { useState } from "react";
 import Hero from "@/components/Hero";
 import BrokerBadge from "@/components/BrokerBadge";
+import TopLogos from "@/components/TopLogos";
 import QualificationForm from "@/components/QualificationForm";
 import ResultsScreen from "@/components/results/ResultsScreen";
 import type { AnalyzeResponse } from "@/lib/types";
@@ -92,16 +93,17 @@ export default function Home() {
         )}
       </AnimatePresence>
 
-      {/* Badge courtier — visible sur le hero et les résultats, masqué pendant le formulaire */}
+      {/* Logos en haut + badge courtier — visibles sur le hero et les résultats */}
       <AnimatePresence>
         {(stage === "hero" || stage === "results") && (
           <motion.div
-            key="broker-badge"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: 20 }}
+            key="brand-chrome"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
             transition={{ duration: 0.4 }}
           >
+            <TopLogos />
             <BrokerBadge />
           </motion.div>
         )}
