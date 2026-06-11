@@ -16,11 +16,10 @@ export default function TopLogos() {
         <Image
           src="/logo-vyncent.png"
           alt="Vyncent Ledoux"
-          width={520}
-          height={96}
+          width={972}
+          height={113}
           priority
-          className="h-7 sm:h-9 w-auto"
-          style={{ filter: "brightness(0) invert(1)", opacity: 0.92 }}
+          className="h-5 sm:h-6 w-auto"
         />
       </motion.div>
 
@@ -34,11 +33,10 @@ export default function TopLogos() {
         <Image
           src="/logo-remax.png"
           alt="RE/MAX"
-          width={300}
-          height={188}
+          width={957}
+          height={259}
           priority
-          className="h-6 sm:h-8 w-auto"
-          style={{ filter: "brightness(0) invert(1)", opacity: 0.88 }}
+          className="h-7 sm:h-9 w-auto"
         />
       </motion.div>
     </>
