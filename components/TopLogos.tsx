@@ -16,10 +16,10 @@ export default function TopLogos() {
         <Image
           src="/logo-vyncent.png"
           alt="Vyncent Ledoux"
-          width={972}
-          height={113}
+          width={2716}
+          height={412}
           priority
-          className="h-5 sm:h-6 w-auto"
+          className="h-7 sm:h-9 w-auto"
         />
       </motion.div>
 
