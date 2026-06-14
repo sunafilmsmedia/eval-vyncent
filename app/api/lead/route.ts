@@ -1,11 +1,18 @@
 import { NextResponse } from "next/server";
 import { computeScoring } from "@/lib/scoring";
+import { REGIONS } from "@/lib/regions";
 import type { Answers, LeadPayload } from "@/lib/types";
 
 export const runtime = "nodejs";
 
 interface IncomingBody extends Partial<LeadPayload> {
   answers?: Answers;
+}
+
+function splitName(full: string): { firstName: string; lastName: string } {
+  const parts = full.trim().split(/\s+/);
+  if (parts.length === 1) return { firstName: parts[0], lastName: "" };
+  return { firstName: parts[0], lastName: parts.slice(1).join(" ") };
 }
 
 export async function POST(req: Request) {
@@ -35,9 +42,46 @@ export async function POST(req: Request) {
     });
   }
 
+  const { firstName, lastName } = splitName(name);
+  const regionName = REGIONS.find((r) => r.id === answers.region)?.name ?? "";
+  const appreciationPct = Math.round(scoring.metrics.appreciation * 1000) / 10;
+  const annualizedPct = Math.round(scoring.metrics.annualizedReturn * 1000) / 10;
+  const gain = (answers.estimatedValue ?? 0) - (answers.purchasePrice ?? 0);
+
+  // Payload aplati pour faciliter le mapping dans le workflow GHL,
+  // tout en gardant les données originales nestées en complément.
   const payload = {
     source: "vyncent-ledoux-app",
     receivedAt: new Date().toISOString(),
+
+    // Contact (mapping direct vers les champs standards GHL)
+    firstName,
+    lastName,
+    fullName: name,
+    phone,
+    email: email ?? "",
+
+    // Scoring
+    score: scoring.score,
+    verdict: scoring.verdict,
+    appreciationPct,
+    annualizedReturnPct: annualizedPct,
+    gainEstime: gain,
+
+    // Détails propriété (champs personnalisés GHL faciles à mapper)
+    propertyType: answers.propertyType ?? "",
+    yearsOwned: answers.yearsOwned ?? 0,
+    purchasePrice: answers.purchasePrice ?? 0,
+    estimatedValue: answers.estimatedValue ?? 0,
+    mortgageStatus: answers.mortgageStatus ?? "",
+    region: regionName,
+    regionId: answers.region ?? "",
+    financialProfile: answers.financialProfile ?? "",
+    hasChildren: answers.hasChildren ?? false,
+    childrenStatus: answers.childrenStatus ?? "",
+    noChildrenPlan: answers.noChildrenPlan ?? "",
+
+    // Données brutes originales pour référence complète
     lead: { name, phone, email },
     scoring: { score: scoring.score, verdict: scoring.verdict },
     answers,
