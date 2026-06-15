@@ -11,7 +11,7 @@ import NumberQuestion from "./questions/NumberQuestion";
 import CurrencyQuestion from "./questions/CurrencyQuestion";
 import RegionMap from "./questions/RegionMap";
 import LeadCapture, { type LeadFields } from "./questions/LeadCapture";
-import { trackCustomPixel } from "./MetaPixel";
+import { trackLeadWithMatching } from "./MetaPixel";
 
 interface Props {
   onComplete: (result: {
@@ -108,15 +108,25 @@ export default function QualificationForm({ onComplete, onExit }: Props) {
         }),
       });
       const leadData = await leadRes.json();
-      // Meta Pixel — événement personnalisé "Prospect" déclenché à
-      // la soumission du formulaire (utilisé comme conversion custom
-      // pour l'optimisation des campagnes Meta).
-      trackCustomPixel("Prospect", {
-        content_category: "real_estate_evaluation",
-        value: analyze.scoring.score,
-        verdict: analyze.scoring.verdict,
-        currency: "CAD",
-      });
+      // Meta Pixel — événement standard Lead (natif, reconnu comme
+      // conversion par Meta) déclenché après soumission complète.
+      // Advanced Matching activé : email/téléphone/nom permettent à
+      // Meta de matcher la personne à son compte Facebook/Instagram.
+      const [firstNameRaw, ...lastParts] = lead.name.trim().split(/\s+/);
+      trackLeadWithMatching(
+        {
+          email: lead.email || undefined,
+          phone: lead.phone,
+          firstName: firstNameRaw,
+          lastName: lastParts.join(" ") || undefined,
+        },
+        {
+          content_category: "real_estate_evaluation",
+          value: analyze.scoring.score,
+          verdict: analyze.scoring.verdict,
+          currency: "CAD",
+        }
+      );
       onComplete({
         analyze,
         leadStored: !!leadData.stored,

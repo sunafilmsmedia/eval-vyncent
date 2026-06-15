@@ -45,9 +45,37 @@ export function trackPixel(event: string, params?: Record<string, unknown>) {
   }
 }
 
-// Helper pour fire un événement personnalisé (Prospect, etc.)
+// Helper pour fire un événement personnalisé (custom conversion)
 export function trackCustomPixel(event: string, params?: Record<string, unknown>) {
   if (typeof window !== "undefined" && window.fbq) {
     window.fbq("trackCustom", event, params);
   }
+}
+
+// Informations utilisateur pour l'Advanced Matching de Meta.
+// Meta auto-hash ces valeurs côté client avant envoi.
+export interface AdvancedMatchingInfo {
+  email?: string;
+  phone?: string;
+  firstName?: string;
+  lastName?: string;
+}
+
+// Déclenche l'événement standard "Lead" avec Advanced Matching activé.
+// Le ré-init du pixel avec user_data attache ces infos à TOUS les events
+// subséquents sur la session — incluant l'event Lead qui suit.
+export function trackLeadWithMatching(
+  user: AdvancedMatchingInfo,
+  eventParams?: Record<string, unknown>
+) {
+  if (typeof window === "undefined" || !window.fbq) return;
+
+  const userData: Record<string, string> = {};
+  if (user.email) userData.em = user.email.trim().toLowerCase();
+  if (user.phone) userData.ph = user.phone.replace(/\D/g, "");
+  if (user.firstName) userData.fn = user.firstName.trim().toLowerCase();
+  if (user.lastName) userData.ln = user.lastName.trim().toLowerCase();
+
+  window.fbq("init", PIXEL_ID, userData);
+  window.fbq("track", "Lead", eventParams);
 }
