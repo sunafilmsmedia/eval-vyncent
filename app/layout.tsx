@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { DM_Sans, Instrument_Serif } from "next/font/google";
+import MetaPixel from "@/components/MetaPixel";
 import "./globals.css";
 
 const dmSans = DM_Sans({
@@ -31,7 +32,10 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="fr-CA" className={`${dmSans.variable} ${instrumentSerif.variable}`}>
-      <body className="min-h-screen antialiased">{children}</body>
+      <body className="min-h-screen antialiased">
+        <MetaPixel />
+        {children}
+      </body>
     </html>
   );
 }
