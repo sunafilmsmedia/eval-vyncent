@@ -38,9 +38,16 @@ export default function MetaPixel() {
   );
 }
 
-// Helper pour fire un événement custom où tu veux dans l'app
+// Helper pour fire un événement standard Meta (Lead, Purchase, etc.)
 export function trackPixel(event: string, params?: Record<string, unknown>) {
   if (typeof window !== "undefined" && window.fbq) {
     window.fbq("track", event, params);
+  }
+}
+
+// Helper pour fire un événement personnalisé (Prospect, etc.)
+export function trackCustomPixel(event: string, params?: Record<string, unknown>) {
+  if (typeof window !== "undefined" && window.fbq) {
+    window.fbq("trackCustom", event, params);
   }
 }

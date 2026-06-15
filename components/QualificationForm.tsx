@@ -11,7 +11,7 @@ import NumberQuestion from "./questions/NumberQuestion";
 import CurrencyQuestion from "./questions/CurrencyQuestion";
 import RegionMap from "./questions/RegionMap";
 import LeadCapture, { type LeadFields } from "./questions/LeadCapture";
-import { trackPixel } from "./MetaPixel";
+import { trackCustomPixel } from "./MetaPixel";
 
 interface Props {
   onComplete: (result: {
@@ -108,9 +108,10 @@ export default function QualificationForm({ onComplete, onExit }: Props) {
         }),
       });
       const leadData = await leadRes.json();
-      // Meta Pixel — Lead event pour optimiser les pubs Meta.
-      // Pas de PII envoyée, juste les signaux d'intention.
-      trackPixel("Lead", {
+      // Meta Pixel — événement personnalisé "Prospect" déclenché à
+      // la soumission du formulaire (utilisé comme conversion custom
+      // pour l'optimisation des campagnes Meta).
+      trackCustomPixel("Prospect", {
         content_category: "real_estate_evaluation",
         value: analyze.scoring.score,
         verdict: analyze.scoring.verdict,
