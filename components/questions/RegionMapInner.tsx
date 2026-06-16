@@ -1,7 +1,7 @@
 "use client";
 
 import { MapContainer, TileLayer, CircleMarker, Tooltip, useMapEvents } from "react-leaflet";
-import { REGIONS, REGION_CENTER } from "@/lib/regions";
+import { REGIONS, REGION_BOUNDS } from "@/lib/regions";
 
 interface Props {
   value?: string;
@@ -32,13 +32,22 @@ function ClickHandler({ onPick }: { onPick: (id: string) => void }) {
   return null;
 }
 
+function tooltipOffset(dir: "top" | "bottom" | "left" | "right"): [number, number] {
+  switch (dir) {
+    case "top":    return [0, -10];
+    case "bottom": return [0, 10];
+    case "left":   return [-12, 0];
+    case "right":  return [12, 0];
+  }
+}
+
 export default function RegionMapInner({ value, onChange }: Props) {
   return (
     <MapContainer
-      center={REGION_CENTER}
-      zoom={11}
-      minZoom={10}
-      maxZoom={14}
+      bounds={REGION_BOUNDS}
+      boundsOptions={{ padding: [40, 40] }}
+      minZoom={9}
+      maxZoom={13}
       scrollWheelZoom={false}
       style={{ width: "100%", height: "100%", cursor: "pointer" }}
     >
@@ -66,7 +75,12 @@ export default function RegionMapInner({ value, onChange }: Props) {
               click: () => onChange(r.id),
             }}
           >
-            <Tooltip permanent direction="top" offset={[0, -10]} className="region-label">
+            <Tooltip
+              permanent
+              direction={r.labelDir}
+              offset={tooltipOffset(r.labelDir)}
+              className="region-label"
+            >
               {r.name}
             </Tooltip>
           </CircleMarker>
