@@ -37,17 +37,18 @@ function ClickHandler({ onPick }: { onPick: (id: string) => void }) {
 function FitBoundsOnMount() {
   const map = useMap();
   useEffect(() => {
-    map.fitBounds(REGION_BOUNDS, { padding: [30, 30], animate: false });
-    const onResize = () => {
+    const fit = () => {
       map.invalidateSize();
-      map.fitBounds(REGION_BOUNDS, { padding: [30, 30], animate: false });
+      map.fitBounds(REGION_BOUNDS, { padding: [15, 15], animate: false });
     };
-    window.addEventListener("resize", onResize);
-    // Re-fit après le premier paint pour s'assurer que le conteneur a sa taille finale
-    const t = setTimeout(onResize, 100);
+    fit();
+    const t1 = setTimeout(fit, 100);
+    const t2 = setTimeout(fit, 500);
+    window.addEventListener("resize", fit);
     return () => {
-      window.removeEventListener("resize", onResize);
-      clearTimeout(t);
+      clearTimeout(t1);
+      clearTimeout(t2);
+      window.removeEventListener("resize", fit);
     };
   }, [map]);
   return null;
@@ -55,10 +56,10 @@ function FitBoundsOnMount() {
 
 function tooltipOffset(dir: "top" | "bottom" | "left" | "right"): [number, number] {
   switch (dir) {
-    case "top":    return [0, -10];
-    case "bottom": return [0, 10];
-    case "left":   return [-12, 0];
-    case "right":  return [12, 0];
+    case "top":    return [0, -12];
+    case "bottom": return [0, 12];
+    case "left":   return [-14, 0];
+    case "right":  return [14, 0];
   }
 }
 
@@ -66,8 +67,8 @@ export default function RegionMapInner({ value, onChange }: Props) {
   return (
     <MapContainer
       center={REGION_CENTER}
-      zoom={10}
-      minZoom={9}
+      zoom={9}
+      minZoom={8}
       maxZoom={13}
       scrollWheelZoom={false}
       style={{ width: "100%", height: "100%", cursor: "pointer" }}
@@ -85,13 +86,13 @@ export default function RegionMapInner({ value, onChange }: Props) {
           <CircleMarker
             key={r.id}
             center={[r.lat, r.lng]}
-            radius={selected ? 14 : 9}
+            radius={selected ? 16 : 11}
             pathOptions={{
               color: selected ? "#1d3eb3" : "#3a6dff",
-              weight: selected ? 3 : 2,
+              weight: selected ? 4 : 3,
               opacity: 1,
               fillColor: selected ? "#3a6dff" : "#ffffff",
-              fillOpacity: selected ? 0.95 : 0.85,
+              fillOpacity: selected ? 0.95 : 0.92,
             }}
             eventHandlers={{
               click: () => onChange(r.id),
