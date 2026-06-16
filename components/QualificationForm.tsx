@@ -22,7 +22,7 @@ interface Props {
   onExit: () => void;
 }
 
-const AUTO_ADVANCE_MS = 220;
+const AUTO_ADVANCE_MS = 0;
 
 export default function QualificationForm({ onComplete, onExit }: Props) {
   const [answers, setAnswers] = useState<Answers>({});

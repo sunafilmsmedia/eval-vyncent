@@ -1,7 +1,8 @@
 "use client";
 
-import { MapContainer, TileLayer, CircleMarker, Tooltip, useMapEvents } from "react-leaflet";
-import { REGIONS, REGION_BOUNDS } from "@/lib/regions";
+import { useEffect } from "react";
+import { MapContainer, TileLayer, CircleMarker, Tooltip, useMap, useMapEvents } from "react-leaflet";
+import { REGIONS, REGION_BOUNDS, REGION_CENTER } from "@/lib/regions";
 
 interface Props {
   value?: string;
@@ -32,6 +33,26 @@ function ClickHandler({ onPick }: { onPick: (id: string) => void }) {
   return null;
 }
 
+// Force-fit la carte sur tous les secteurs au montage et après resize.
+function FitBoundsOnMount() {
+  const map = useMap();
+  useEffect(() => {
+    map.fitBounds(REGION_BOUNDS, { padding: [30, 30], animate: false });
+    const onResize = () => {
+      map.invalidateSize();
+      map.fitBounds(REGION_BOUNDS, { padding: [30, 30], animate: false });
+    };
+    window.addEventListener("resize", onResize);
+    // Re-fit après le premier paint pour s'assurer que le conteneur a sa taille finale
+    const t = setTimeout(onResize, 100);
+    return () => {
+      window.removeEventListener("resize", onResize);
+      clearTimeout(t);
+    };
+  }, [map]);
+  return null;
+}
+
 function tooltipOffset(dir: "top" | "bottom" | "left" | "right"): [number, number] {
   switch (dir) {
     case "top":    return [0, -10];
@@ -44,8 +65,8 @@ function tooltipOffset(dir: "top" | "bottom" | "left" | "right"): [number, numbe
 export default function RegionMapInner({ value, onChange }: Props) {
   return (
     <MapContainer
-      bounds={REGION_BOUNDS}
-      boundsOptions={{ padding: [40, 40] }}
+      center={REGION_CENTER}
+      zoom={10}
       minZoom={9}
       maxZoom={13}
       scrollWheelZoom={false}
@@ -56,6 +77,7 @@ export default function RegionMapInner({ value, onChange }: Props) {
         attribution='&copy; OpenStreetMap, &copy; CARTO'
         subdomains={["a", "b", "c", "d"]}
       />
+      <FitBoundsOnMount />
       <ClickHandler onPick={onChange} />
       {REGIONS.map((r) => {
         const selected = value === r.id;
