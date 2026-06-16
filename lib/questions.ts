@@ -66,8 +66,8 @@ export const QUESTIONS: QuestionDef[] = [
   {
     id: "estimatedValue",
     kind: "currency",
-    title: "Quelle est la valeur estimée actuelle ?",
-    subtitle: "Ton estimation honnête du marché aujourd'hui.",
+    title: "Pour combien tu penses qu'elle vaut aujourd'hui ?",
+    subtitle: "Ton estimation à toi — pas besoin d'être exact.",
   },
   {
     id: "mortgageStatus",

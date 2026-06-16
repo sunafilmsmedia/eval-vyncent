@@ -336,7 +336,7 @@ function QuestionRenderer({
           value={answers.estimatedValue}
           onChange={(v) => onUpdate({ estimatedValue: v }, false)}
           placeholder="450 000"
-          helper="Une estimation honnête de la valeur marchande actuelle."
+          helper="Aucun jugement — c'est juste pour calibrer l'analyse."
         />
       );
     case "mortgageStatus":
