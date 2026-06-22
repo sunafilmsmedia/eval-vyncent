@@ -71,10 +71,10 @@ export default function ResultsScreen({ analyze, answers, onRestart }: Props) {
         </p>
       </motion.div>
 
-      {/* Carte score */}
+      {/* Score card */}
       <ScoreCard score={scoring.score} verdict={scoring.verdict} />
 
-      {/* Stats secondaires */}
+      {/* Stats secondaires — juste sous la note */}
       <div className="grid sm:grid-cols-3 gap-3 mt-4">
         {report.stats.slice(1, 4).map((s, i) => (
           <motion.div
@@ -91,13 +91,24 @@ export default function ResultsScreen({ analyze, answers, onRestart }: Props) {
         ))}
       </div>
 
+      {/* Étape de capture (ou confirmation) — juste après les stats */}
+      {submission.kind === "pending" ? (
+        <ContactForm
+          answers={answers}
+          verdict={scoring.verdict}
+          onSubmitted={(r) => setSubmission({ kind: "done", ...r })}
+        />
+      ) : (
+        <ConfirmationBlock stored={submission.stored} firstName={submission.firstName} />
+      )}
+
       {/* Market insight */}
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.55 }}
         className="
-          mt-6
+          mt-12
           rounded-2xl
           bg-gradient-to-br from-[var(--color-brand-500)]/10 to-[var(--color-brand-700)]/10
           border border-[var(--color-brand-400)]/20
@@ -180,17 +191,6 @@ export default function ResultsScreen({ analyze, answers, onRestart }: Props) {
           ))}
         </ol>
       </motion.section>
-
-      {/* Étape finale — capture lead OU confirmation */}
-      {submission.kind === "pending" ? (
-        <ContactForm
-          answers={answers}
-          verdict={scoring.verdict}
-          onSubmitted={(r) => setSubmission({ kind: "done", ...r })}
-        />
-      ) : (
-        <ConfirmationBlock stored={submission.stored} firstName={submission.firstName} />
-      )}
 
       {/* Footer */}
       <div className="mt-12 mb-24 sm:mb-12 text-center">
