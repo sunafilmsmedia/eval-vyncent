@@ -74,6 +74,16 @@ export default function ResultsScreen({ analyze, answers, onRestart }: Props) {
       {/* Score card */}
       <ScoreCard score={scoring.score} verdict={scoring.verdict} />
 
+      {/* Mention discrète sous la note */}
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.6, delay: 0.7 }}
+        className="text-center text-[11px] sm:text-xs text-slate-500 italic mt-3 mb-1"
+      >
+        Un courtier t&apos;appellera pour confirmer les résultats.
+      </motion.p>
+
       {/* Stats secondaires — juste sous la note */}
       <div className="grid sm:grid-cols-3 gap-3 mt-4">
         {report.stats.slice(1, 4).map((s, i) => (
