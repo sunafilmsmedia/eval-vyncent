@@ -25,7 +25,9 @@ export async function POST(req: Request) {
 
   const { name, phone, email, consent, answers } = body;
 
-  if (!name || !phone || !consent || !answers) {
+  // Email maintenant requis (capture déplacée après les résultats),
+  // téléphone optionnel.
+  if (!name || !email || !consent || !answers) {
     return NextResponse.json(
       { stored: false, error: "Missing required fields" },
       { status: 400 }

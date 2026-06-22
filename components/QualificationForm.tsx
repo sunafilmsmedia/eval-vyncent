@@ -3,22 +3,16 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useMemo, useRef, useState } from "react";
 import { getVisibleQuestions, isAnswered } from "@/lib/questions";
-import type { Answers, AnalyzeResponse } from "@/lib/types";
+import type { Answers } from "@/lib/types";
 import ProgressBar from "./ProgressBar";
 import ChoiceQuestion from "./questions/ChoiceQuestion";
 import BooleanQuestion from "./questions/BooleanQuestion";
 import NumberQuestion from "./questions/NumberQuestion";
 import CurrencyQuestion from "./questions/CurrencyQuestion";
 import RegionMap from "./questions/RegionMap";
-import LeadCapture, { type LeadFields } from "./questions/LeadCapture";
-import { trackLeadWithMatching } from "./MetaPixel";
 
 interface Props {
-  onComplete: (result: {
-    analyze: AnalyzeResponse;
-    leadStored: boolean;
-    leadName: string;
-  }) => void;
+  onComplete: (answers: Answers) => void;
   onExit: () => void;
 }
 
@@ -26,16 +20,8 @@ const AUTO_ADVANCE_MS = 220;
 
 export default function QualificationForm({ onComplete, onExit }: Props) {
   const [answers, setAnswers] = useState<Answers>({});
-  const [lead, setLead] = useState<LeadFields>({
-    name: "",
-    phone: "",
-    email: "",
-    consent: false,
-  });
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState<1 | -1>(1);
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const autoAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const visible = useMemo(() => getVisibleQuestions(answers), [answers]);
@@ -43,10 +29,19 @@ export default function QualificationForm({ onComplete, onExit }: Props) {
   const isLast = index >= visible.length - 1;
   const canProceed = current ? isAnswered(current, answers) : false;
 
+  const submit = useCallback(() => {
+    if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
+    onComplete(answers);
+  }, [answers, onComplete]);
+
   const goNext = useCallback(() => {
     setDirection(1);
-    setIndex((i) => Math.min(visible.length - 1, i + 1));
-  }, [visible.length]);
+    if (isLast) {
+      submit();
+    } else {
+      setIndex((i) => Math.min(visible.length - 1, i + 1));
+    }
+  }, [isLast, submit, visible.length]);
 
   const goPrev = useCallback(() => {
     if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
@@ -56,87 +51,33 @@ export default function QualificationForm({ onComplete, onExit }: Props) {
 
   const updateAndMaybeAdvance = useCallback(
     (partial: Partial<Answers>, autoAdvance: boolean) => {
+      let nextAnswers: Answers = answers;
       setAnswers((prev) => {
         const next = { ...prev, ...partial };
-        // Branchement : si on change hasChildren, nettoyer l'autre branche
         if ("hasChildren" in partial) {
           if (partial.hasChildren === true) delete next.noChildrenPlan;
           if (partial.hasChildren === false) delete next.childrenStatus;
         }
+        nextAnswers = next;
         return next;
       });
       if (autoAdvance) {
         if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
         autoAdvanceTimer.current = setTimeout(() => {
           setDirection(1);
-          setIndex((i) => i + 1);
+          setIndex((i) => {
+            const visibleAfter = getVisibleQuestions(nextAnswers);
+            if (i >= visibleAfter.length - 1) {
+              onComplete(nextAnswers);
+              return i;
+            }
+            return i + 1;
+          });
         }, AUTO_ADVANCE_MS);
       }
     },
-    []
+    [answers, onComplete]
   );
-
-  const submitAll = useCallback(async () => {
-    setError(null);
-    if (!lead.name.trim() || !lead.phone.trim()) {
-      setError("Le nom et le téléphone sont requis.");
-      return;
-    }
-    if (!lead.consent) {
-      setError("Merci de cocher la case de consentement.");
-      return;
-    }
-    setSubmitting(true);
-    try {
-      const analyzeRes = await fetch("/api/analyze", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ answers }),
-      });
-      if (!analyzeRes.ok) throw new Error("Analyse indisponible.");
-      const analyze: AnalyzeResponse = await analyzeRes.json();
-
-      const leadRes = await fetch("/api/lead", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: lead.name.trim(),
-          phone: lead.phone.trim(),
-          email: lead.email.trim() || undefined,
-          consent: lead.consent,
-          answers,
-        }),
-      });
-      const leadData = await leadRes.json();
-      // Meta Pixel — événement standard Lead (natif, reconnu comme
-      // conversion par Meta) déclenché après soumission complète.
-      // Advanced Matching activé : email/téléphone/nom permettent à
-      // Meta de matcher la personne à son compte Facebook/Instagram.
-      const [firstNameRaw, ...lastParts] = lead.name.trim().split(/\s+/);
-      trackLeadWithMatching(
-        {
-          email: lead.email || undefined,
-          phone: lead.phone,
-          firstName: firstNameRaw,
-          lastName: lastParts.join(" ") || undefined,
-        },
-        {
-          content_category: "real_estate_evaluation",
-          value: analyze.scoring.score,
-          verdict: analyze.scoring.verdict,
-          currency: "CAD",
-        }
-      );
-      onComplete({
-        analyze,
-        leadStored: !!leadData.stored,
-        leadName: lead.name.trim().split(" ")[0],
-      });
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Une erreur est survenue.");
-      setSubmitting(false);
-    }
-  }, [answers, lead, onComplete]);
 
   if (!current) return null;
 
@@ -183,9 +124,7 @@ export default function QualificationForm({ onComplete, onExit }: Props) {
             <QuestionRenderer
               questionId={current.id}
               answers={answers}
-              lead={lead}
               onUpdate={updateAndMaybeAdvance}
-              onLeadChange={setLead}
               autoAdvance={!!current.autoAdvance}
               choices={current.choices}
             />
@@ -195,9 +134,6 @@ export default function QualificationForm({ onComplete, onExit }: Props) {
 
       {/* Footer controls */}
       <footer className="mt-8 sm:mt-10 pt-6 border-t border-white/5">
-        {error && (
-          <p className="text-sm text-rose-400 mb-3 text-center">{error}</p>
-        )}
         <div className="flex items-center justify-between gap-4">
           <button
             type="button"
@@ -216,8 +152,8 @@ export default function QualificationForm({ onComplete, onExit }: Props) {
           {isLast ? (
             <button
               type="button"
-              onClick={submitAll}
-              disabled={submitting || !canProceed}
+              onClick={submit}
+              disabled={!canProceed}
               className="
                 inline-flex items-center gap-2
                 px-6 sm:px-8 py-3 rounded-full text-sm font-medium
@@ -229,18 +165,10 @@ export default function QualificationForm({ onComplete, onExit }: Props) {
                 transition-all
               "
             >
-              {submitting ? (
-                <>
-                  <Spinner /> Analyse en cours…
-                </>
-              ) : (
-                <>
-                  Recevoir mon rapport
-                  <svg className="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M5 10h10M11 6l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
-                  </svg>
-                </>
-              )}
+              Voir mon analyse
+              <svg className="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M5 10h10M11 6l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
             </button>
           ) : (
             <button
@@ -269,38 +197,20 @@ export default function QualificationForm({ onComplete, onExit }: Props) {
   );
 }
 
-function Spinner() {
-  return (
-    <svg className="w-4 h-4 animate-spin" viewBox="0 0 24 24" fill="none">
-      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeOpacity="0.25" strokeWidth="3" />
-      <path
-        d="M22 12a10 10 0 0 1-10 10"
-        stroke="currentColor"
-        strokeWidth="3"
-        strokeLinecap="round"
-      />
-    </svg>
-  );
-}
-
 interface RendererProps {
   questionId: string;
   answers: Answers;
-  lead: LeadFields;
   choices?: { value: string; label: string; hint?: string }[];
   autoAdvance: boolean;
   onUpdate: (partial: Partial<Answers>, autoAdvance: boolean) => void;
-  onLeadChange: (v: LeadFields) => void;
 }
 
 function QuestionRenderer({
   questionId,
   answers,
-  lead,
   choices,
   autoAdvance,
   onUpdate,
-  onLeadChange,
 }: RendererProps) {
   switch (questionId) {
     case "propertyType":
@@ -385,8 +295,6 @@ function QuestionRenderer({
           onChange={(id) => onUpdate({ region: id }, false)}
         />
       );
-    case "leadCapture":
-      return <LeadCapture value={lead} onChange={onLeadChange} />;
     default:
       return null;
   }

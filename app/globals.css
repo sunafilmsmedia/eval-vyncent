@@ -88,6 +88,23 @@ body {
   -webkit-text-fill-color: transparent;
   animation: ai-shimmer 8s linear infinite;
 }
+.ai-shimmer-fast {
+  background-image: linear-gradient(
+    90deg,
+    #8aaeff 0%,
+    #c9a96e 18%,
+    #b7a6ff 36%,
+    #8aaeff 54%,
+    #f2b9d5 72%,
+    #8aaeff 100%
+  );
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  color: transparent;
+  -webkit-text-fill-color: transparent;
+  animation: ai-shimmer 2.5s linear infinite;
+}
 
 /* Pulse dot */
 @keyframes soft-pulse {

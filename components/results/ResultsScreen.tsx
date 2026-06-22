@@ -1,12 +1,13 @@
 "use client";
 
 import { motion } from "framer-motion";
-import type { AnalyzeResponse, Verdict } from "@/lib/types";
+import { useState } from "react";
+import type { AnalyzeResponse, Answers, Verdict } from "@/lib/types";
+import ContactForm from "./ContactForm";
 
 interface Props {
   analyze: AnalyzeResponse;
-  leadStored: boolean;
-  leadName: string;
+  answers: Answers;
   onRestart: () => void;
 }
 
@@ -31,9 +32,14 @@ const VERDICT_META: Record<Verdict, { label: string; color: string; bg: string; 
   },
 };
 
-export default function ResultsScreen({ analyze, leadStored, leadName, onRestart }: Props) {
+type SubmissionState =
+  | { kind: "pending" }
+  | { kind: "done"; stored: boolean; firstName: string };
+
+export default function ResultsScreen({ analyze, answers, onRestart }: Props) {
   const { scoring, report } = analyze;
   const meta = VERDICT_META[scoring.verdict];
+  const [submission, setSubmission] = useState<SubmissionState>({ kind: "pending" });
 
   return (
     <div className="min-h-screen px-5 sm:px-8 py-10 sm:py-14 max-w-3xl mx-auto w-full">
@@ -50,16 +56,13 @@ export default function ResultsScreen({ analyze, leadStored, leadName, onRestart
         </div>
       </motion.div>
 
-      {/* Salutation + headline */}
+      {/* Headline */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
         className="text-center mb-12"
       >
-        <p className="font-serif italic text-[var(--color-brand-300)] text-base sm:text-lg mb-3">
-          Bonjour {leadName},
-        </p>
         <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-[var(--color-brand-100)] leading-[1.15] tracking-tight text-balance">
           {report.headline}
         </h1>
@@ -178,54 +181,16 @@ export default function ResultsScreen({ analyze, leadStored, leadName, onRestart
         </ol>
       </motion.section>
 
-      {/* Message final */}
-      <motion.div
-        initial={{ opacity: 0, y: 12 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.9 }}
-        className={`
-          mt-12 rounded-2xl p-6 sm:p-7
-          ${leadStored
-            ? "bg-gradient-to-br from-[var(--color-brand-700)]/30 to-[var(--color-brand-900)]/30 border border-[var(--color-brand-400)]/30"
-            : "bg-gradient-to-br from-[var(--color-gold)]/10 to-transparent border border-[var(--color-gold)]/30"}
-        `}
-      >
-        {leadStored ? (
-          <>
-            <div className="flex items-center gap-2 mb-2">
-              <svg className="w-5 h-5 text-[var(--color-brand-300)]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
-                <path d="M3 7L10 3L17 7M3 7V15A2 2 0 0 0 5 17H15A2 2 0 0 0 17 15V7M3 7L10 11L17 7" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <p className="font-serif text-lg text-[var(--color-brand-100)]">
-                Un courtier va prendre contact avec toi.
-              </p>
-            </div>
-            <p className="text-sm text-slate-300 leading-relaxed">
-              Vyncent ou un membre de son équipe te joindra dans les 24 prochaines heures
-              ouvrables pour discuter de ton dossier en toute confidentialité. Aucune
-              pression, aucun engagement — simplement une conversation honnête.
-            </p>
-          </>
-        ) : (
-          <>
-            <div className="flex items-center gap-2 mb-2">
-              <svg className="w-5 h-5 text-[var(--color-gold)]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
-                <path d="M10 2 L17 6 L17 11 C17 14.5 14 17.5 10 18 C6 17.5 3 14.5 3 11 L3 6 Z" strokeLinejoin="round" />
-                <path d="M7 10 L9.5 12.5 L14 8" strokeLinecap="round" strokeLinejoin="round" />
-              </svg>
-              <p className="font-serif text-lg text-[var(--color-gold-soft)]">
-                Tes coordonnées ont été supprimées.
-              </p>
-            </div>
-            <p className="text-sm text-[var(--color-gold-soft)]/80 leading-relaxed">
-              Comme promis, puisque l&apos;analyse conclut que ce n&apos;est pas le bon moment
-              pour vendre, ton nom, ton téléphone et ton courriel ont été automatiquement
-              supprimés. Aucun courtier ne te contactera. Tu peux revenir nous voir quand tu
-              seras prêt — l&apos;analyse reste à ta disposition ici.
-            </p>
-          </>
-        )}
-      </motion.div>
+      {/* Étape finale — capture lead OU confirmation */}
+      {submission.kind === "pending" ? (
+        <ContactForm
+          answers={answers}
+          verdict={scoring.verdict}
+          onSubmitted={(r) => setSubmission({ kind: "done", ...r })}
+        />
+      ) : (
+        <ConfirmationBlock stored={submission.stored} firstName={submission.firstName} />
+      )}
 
       {/* Footer */}
       <div className="mt-12 mb-24 sm:mb-12 text-center">
@@ -240,6 +205,59 @@ export default function ResultsScreen({ analyze, leadStored, leadName, onRestart
         </p>
       </div>
     </div>
+  );
+}
+
+function ConfirmationBlock({ stored, firstName }: { stored: boolean; firstName: string }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.6 }}
+      className={`
+        mt-12 rounded-3xl p-6 sm:p-8
+        ${stored
+          ? "bg-gradient-to-br from-emerald-500/15 to-[var(--color-brand-900)]/30 border border-emerald-400/30"
+          : "bg-gradient-to-br from-[var(--color-gold)]/10 to-transparent border border-[var(--color-gold)]/30"}
+      `}
+    >
+      {stored ? (
+        <>
+          <div className="flex items-center gap-2 mb-2">
+            <svg className="w-5 h-5 text-emerald-300" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
+              <path d="M3 7L10 3L17 7M3 7V15A2 2 0 0 0 5 17H15A2 2 0 0 0 17 15V7M3 7L10 11L17 7" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <p className="font-serif text-xl sm:text-2xl text-[var(--color-brand-100)]">
+              Merci {firstName}, ton plan arrive.
+            </p>
+          </div>
+          <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
+            Tu vas recevoir tes démarches personnalisées par courriel dans les prochaines
+            minutes. Vyncent ou un membre de son équipe pourrait aussi te joindre dans
+            les 24 prochaines heures ouvrables si tu veux discuter de ton dossier. Aucune
+            pression — juste une conversation honnête quand tu seras prêt.
+          </p>
+        </>
+      ) : (
+        <>
+          <div className="flex items-center gap-2 mb-2">
+            <svg className="w-5 h-5 text-[var(--color-gold)]" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
+              <path d="M10 2 L17 6 L17 11 C17 14.5 14 17.5 10 18 C6 17.5 3 14.5 3 11 L3 6 Z" strokeLinejoin="round" />
+              <path d="M7 10 L9.5 12.5 L14 8" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+            <p className="font-serif text-xl sm:text-2xl text-[var(--color-gold-soft)]">
+              Tes coordonnées ont été supprimées.
+            </p>
+          </div>
+          <p className="text-sm sm:text-base text-[var(--color-gold-soft)]/85 leading-relaxed">
+            Comme promis, puisque l&apos;analyse conclut que ce n&apos;est pas le bon moment
+            pour vendre, ton nom, ton téléphone et ton courriel ont été automatiquement
+            supprimés. Aucun courtier ne te contactera. Tu peux revenir nous voir quand tu
+            seras prêt — l&apos;analyse reste à ta disposition ici.
+          </p>
+        </>
+      )}
+    </motion.div>
   );
 }
 

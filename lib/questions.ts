@@ -10,16 +10,14 @@ export type QuestionId =
   | "childrenStatus"
   | "noChildrenPlan"
   | "financialProfile"
-  | "region"
-  | "leadCapture";
+  | "region";
 
 export type QuestionKind =
   | "choice"
   | "number"
   | "currency"
   | "boolean"
-  | "region"
-  | "lead";
+  | "region";
 
 export interface Choice<V extends string = string> {
   value: V;
@@ -138,12 +136,6 @@ export const QUESTIONS: QuestionDef[] = [
     title: "Dans quel secteur se trouve ta propriété ?",
     subtitle: "Touche un marqueur sur la carte.",
   },
-  {
-    id: "leadCapture",
-    kind: "lead",
-    title: "Reçois ton rapport personnalisé",
-    subtitle: "Quelques infos pour te transmettre l'analyse.",
-  },
 ];
 
 export function getVisibleQuestions(answers: Answers): QuestionDef[] {
@@ -162,6 +154,5 @@ export function isAnswered(q: QuestionDef, a: Answers): boolean {
     case "noChildrenPlan": return !!a.noChildrenPlan;
     case "financialProfile": return !!a.financialProfile;
     case "region": return !!a.region;
-    case "leadCapture": return true;
   }
 }
