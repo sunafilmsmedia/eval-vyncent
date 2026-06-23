@@ -86,13 +86,28 @@ export default function ResultsScreen({ analyze, answers, onRestart }: Props) {
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ duration: 0.6, delay: 0.7 }}
-        className="text-center text-[11px] sm:text-xs text-slate-500 italic mt-3 mb-1"
+        className="text-center text-[11px] sm:text-xs text-slate-500 italic mt-3"
       >
         Un courtier t&apos;appellera pour confirmer les résultats.
       </motion.p>
 
-      {/* Stats secondaires — juste sous la note */}
-      <div className="grid sm:grid-cols-3 gap-3 mt-4">
+      {/* Étape de capture (ou confirmation) — juste sous la note */}
+      {submission.kind === "pending" ? (
+        <ContactForm
+          answers={answers}
+          verdict={scoring.verdict}
+          onSubmitted={(r) => setSubmission({ kind: "done", ...r })}
+        />
+      ) : (
+        <ConfirmationBlock
+          stored={submission.stored}
+          firstName={submission.firstName}
+          verdict={scoring.verdict}
+        />
+      )}
+
+      {/* Stats secondaires — sous le tableau de coordonnées */}
+      <div className="grid sm:grid-cols-3 gap-3 mt-12">
         {report.stats.slice(1, 4).map((s, i) => (
           <motion.div
             key={s.label}
@@ -107,21 +122,6 @@ export default function ResultsScreen({ analyze, answers, onRestart }: Props) {
           </motion.div>
         ))}
       </div>
-
-      {/* Étape de capture (ou confirmation) — juste après les stats */}
-      {submission.kind === "pending" ? (
-        <ContactForm
-          answers={answers}
-          verdict={scoring.verdict}
-          onSubmitted={(r) => setSubmission({ kind: "done", ...r })}
-        />
-      ) : (
-        <ConfirmationBlock
-          stored={submission.stored}
-          firstName={submission.firstName}
-          verdict={scoring.verdict}
-        />
-      )}
 
       {/* Market insight */}
       <motion.div
