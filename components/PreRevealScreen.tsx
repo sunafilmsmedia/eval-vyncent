@@ -1,12 +1,29 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
 
 interface Props {
   onContinue: () => void;
 }
 
+// Délai avant que les boutons soient cliquables.
+// Empêche les clics fantômes de l'étape précédente de traverser cet écran.
+const CLICK_GUARD_MS = 700;
+
 export default function PreRevealScreen({ onContinue }: Props) {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    const t = setTimeout(() => setReady(true), CLICK_GUARD_MS);
+    return () => clearTimeout(t);
+  }, []);
+
+  const handleClick = () => {
+    if (!ready) return;
+    onContinue();
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center px-5 sm:px-8 py-16">
       <motion.div
@@ -42,7 +59,8 @@ export default function PreRevealScreen({ onContinue }: Props) {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.6 }}
-          onClick={onContinue}
+          onClick={handleClick}
+          disabled={!ready}
           className="
             group mt-10 w-full
             relative overflow-hidden
@@ -54,6 +72,7 @@ export default function PreRevealScreen({ onContinue }: Props) {
             hover:shadow-[0_25px_60px_-10px_rgba(58,109,255,0.7)]
             hover:-translate-y-0.5
             transition-all duration-300
+            disabled:opacity-70 disabled:cursor-wait disabled:translate-y-0
           "
         >
           <span className="block font-medium text-base sm:text-lg">
@@ -62,15 +81,19 @@ export default function PreRevealScreen({ onContinue }: Props) {
           <span className="block text-xs sm:text-sm text-[var(--color-brand-100)]/80 mt-1">
             Reçois ton analyse par téléphone
           </span>
-          <svg
-            className="absolute right-5 top-1/2 -translate-y-1/2 w-4 h-4 transition-transform group-hover:translate-x-1"
-            viewBox="0 0 20 20"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-          >
-            <path d="M5 10h10M11 6l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <span className="absolute right-5 top-1/2 -translate-y-1/2 flex items-center justify-center w-5 h-5">
+            {ready ? (
+              <svg className="w-4 h-4 transition-transform group-hover:translate-x-1" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M5 10h10M11 6l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            ) : (
+              <span className="flex gap-0.5">
+                <span className="w-1 h-1 rounded-full bg-white/70 animate-pulse" />
+                <span className="w-1 h-1 rounded-full bg-white/70 animate-pulse" style={{ animationDelay: "0.15s" }} />
+                <span className="w-1 h-1 rounded-full bg-white/70 animate-pulse" style={{ animationDelay: "0.3s" }} />
+              </span>
+            )}
+          </span>
         </motion.button>
 
         {/* Bouton secondaire — petit, soft */}
@@ -78,7 +101,8 @@ export default function PreRevealScreen({ onContinue }: Props) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.7 }}
           transition={{ delay: 0.6, duration: 0.6 }}
-          onClick={onContinue}
+          onClick={handleClick}
+          disabled={!ready}
           className="
             mt-6 mx-auto
             text-xs sm:text-sm text-slate-500
@@ -86,6 +110,7 @@ export default function PreRevealScreen({ onContinue }: Props) {
             transition-colors
             underline underline-offset-4 decoration-white/15
             block
+            disabled:cursor-wait
           "
         >
           Non, je veux juste savoir si c&apos;est le bon moment
