@@ -13,12 +13,13 @@ import RegionMap from "./questions/RegionMap";
 
 interface Props {
   onComplete: (answers: Answers) => void;
+  onNoSell: (answers: Answers) => void;
   onExit: () => void;
 }
 
 const AUTO_ADVANCE_MS = 220;
 
-export default function QualificationForm({ onComplete, onExit }: Props) {
+export default function QualificationForm({ onComplete, onNoSell, onExit }: Props) {
   const [answers, setAnswers] = useState<Answers>({});
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState<1 | -1>(1);
@@ -61,6 +62,18 @@ export default function QualificationForm({ onComplete, onExit }: Props) {
         nextAnswers = next;
         return next;
       });
+
+      // Court-circuit : si la personne dit qu'elle ne veut pas vendre,
+      // on saute le reste du questionnaire et on lui propose de
+      // s'abonner aux ventes de son secteur.
+      if (partial.sellingMotivation === "no_sell") {
+        if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
+        autoAdvanceTimer.current = setTimeout(() => {
+          onNoSell(nextAnswers);
+        }, AUTO_ADVANCE_MS);
+        return;
+      }
+
       if (autoAdvance) {
         if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
         autoAdvanceTimer.current = setTimeout(() => {
@@ -76,7 +89,7 @@ export default function QualificationForm({ onComplete, onExit }: Props) {
         }, AUTO_ADVANCE_MS);
       }
     },
-    [answers, onComplete]
+    [answers, onComplete, onNoSell]
   );
 
   if (!current) return null;
@@ -221,6 +234,14 @@ function QuestionRenderer({
           onChange={(v) => onUpdate({ propertyType: v as Answers["propertyType"] }, autoAdvance)}
         />
       );
+    case "sellingMotivation":
+      return (
+        <ChoiceQuestion
+          choices={choices!}
+          value={answers.sellingMotivation}
+          onChange={(v) => onUpdate({ sellingMotivation: v as Answers["sellingMotivation"] }, autoAdvance)}
+        />
+      );
     case "yearsOwned":
       return (
         <NumberQuestion
@@ -231,15 +252,6 @@ function QuestionRenderer({
           suffix="ans"
         />
       );
-    case "purchasePrice":
-      return (
-        <CurrencyQuestion
-          value={answers.purchasePrice}
-          onChange={(v) => onUpdate({ purchasePrice: v }, false)}
-          placeholder="285 000"
-          helper="Le prix payé lors de l'achat initial."
-        />
-      );
     case "estimatedValue":
       return (
         <CurrencyQuestion
@@ -247,14 +259,6 @@ function QuestionRenderer({
           onChange={(v) => onUpdate({ estimatedValue: v }, false)}
           placeholder="450 000"
           helper="Aucun jugement — c'est juste pour calibrer l'analyse."
-        />
-      );
-    case "mortgageStatus":
-      return (
-        <ChoiceQuestion
-          choices={choices!}
-          value={answers.mortgageStatus}
-          onChange={(v) => onUpdate({ mortgageStatus: v as Answers["mortgageStatus"] }, autoAdvance)}
         />
       );
     case "hasChildren":

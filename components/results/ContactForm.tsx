@@ -30,6 +30,11 @@ export default function ContactForm({ answers, verdict, onSubmitted }: Props) {
 
     setSubmitting(true);
     try {
+      // Pour les verdicts défavorables, on bascule sur le funnel
+      // market_info (newsletter) au lieu du funnel evaluation : la
+      // promesse de non-conservation ne s'applique qu'à l'évaluation,
+      // et la personne a opté in pour les mises à jour du marché.
+      const leadType = verdict === "defavorable" ? "market_info" : "evaluation";
       const res = await fetch("/api/lead", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -39,6 +44,7 @@ export default function ContactForm({ answers, verdict, onSubmitted }: Props) {
           phone: phone.trim() || undefined,
           consent,
           answers,
+          leadType,
         }),
       });
       const data = await res.json();
@@ -85,15 +91,19 @@ export default function ContactForm({ answers, verdict, onSubmitted }: Props) {
       <div className="flex items-center gap-2 mb-1">
         <span className="w-1 h-1 rounded-full bg-[var(--color-gold)]" />
         <span className="text-[11px] uppercase tracking-[0.18em] text-[var(--color-gold-soft)]">
-          Étape finale
+          {verdict === "defavorable" ? "Mises à jour du marché" : "Analyse gratuite"}
         </span>
       </div>
 
       <h3 className="font-serif text-2xl sm:text-3xl text-[var(--color-brand-100)] leading-tight text-balance">
-        À quel courriel je peux t&apos;envoyer les démarches à suivre ?
+        {verdict === "defavorable"
+          ? "Veux-tu recevoir les ventes récentes de ton secteur ?"
+          : "Où veux-tu recevoir une analyse gratuite de ta propriété ?"}
       </h3>
       <p className="mt-2 text-sm sm:text-base text-slate-400 leading-relaxed">
-        Reçois ton plan personnalisé pour vendre ta propriété.
+        {verdict === "defavorable"
+          ? "On t'envoie une mise à jour quand le marché de ton secteur bouge — sans pression."
+          : "Reçois ton plan personnalisé pour vendre ta propriété."}
       </p>
 
       <div className="mt-6 space-y-3">
@@ -145,13 +155,17 @@ export default function ContactForm({ answers, verdict, onSubmitted }: Props) {
           </svg>
         </span>
         <span className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-          J&apos;accepte que Vyncent Ledoux m&apos;envoie mon plan et puisse me contacter
-          au sujet de mon évaluation.{" "}
-          {verdict === "defavorable" && (
-            <span className="text-[var(--color-gold-soft)]">
-              Vu que le moment n&apos;est pas favorable, tes infos ne seront pas conservées —
-              promesse tenue.
-            </span>
+          {verdict === "defavorable" ? (
+            <>
+              J&apos;accepte de recevoir les mises à jour du marché de mon secteur
+              par courriel. <span className="text-[var(--color-gold-soft)]">Aucun courtier
+              ne va m&apos;appeler — c&apos;est juste de l&apos;information.</span>
+            </>
+          ) : (
+            <>
+              J&apos;accepte que Vyncent Ledoux m&apos;envoie mon analyse gratuite et
+              puisse me contacter au sujet de mon évaluation.
+            </>
           )}
         </span>
       </label>
@@ -180,7 +194,9 @@ export default function ContactForm({ answers, verdict, onSubmitted }: Props) {
           </>
         ) : (
           <>
-            Recevoir mon plan
+            {verdict === "defavorable"
+              ? "Recevoir les mises à jour"
+              : "Recevoir mon analyse gratuite"}
             <svg className="w-4 h-4" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M5 10h10M11 6l4 4-4 4" strokeLinecap="round" strokeLinejoin="round" />
             </svg>

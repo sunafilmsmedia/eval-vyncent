@@ -8,12 +8,13 @@ import BrokerBadge from "@/components/BrokerBadge";
 import TopLogos from "@/components/TopLogos";
 import QualificationForm from "@/components/QualificationForm";
 import LoadingScreen from "@/components/LoadingScreen";
+import NoSellScreen from "@/components/NoSellScreen";
 import ResultsScreen from "@/components/results/ResultsScreen";
 import type { AnalyzeResponse, Answers } from "@/lib/types";
 
 const HeroBackground = dynamic(() => import("@/components/HeroBackground"), { ssr: false });
 
-type Stage = "hero" | "form" | "loading" | "results";
+type Stage = "hero" | "form" | "loading" | "results" | "noSell";
 
 const MIN_LOADING_MS = 2000;
 
@@ -39,7 +40,7 @@ export default function Home() {
         result = (await res.json()) as AnalyzeResponse;
       }
     } catch {
-      // result reste null — on garde l'utilisateur sur le loader
+      // result reste null
     }
 
     const elapsed = performance.now() - startedAt;
@@ -50,10 +51,15 @@ export default function Home() {
         setStage("results");
         if (typeof window !== "undefined") window.scrollTo(0, 0);
       } else {
-        // Erreur — revenir au formulaire (état conservé via answers)
         setStage("form");
       }
     }, remaining);
+  };
+
+  const handleNoSell = (partialAnswers: Answers) => {
+    setAnswers(partialAnswers);
+    setStage("noSell");
+    if (typeof window !== "undefined") window.scrollTo(0, 0);
   };
 
   const restart = () => {
@@ -62,6 +68,8 @@ export default function Home() {
     setStage("hero");
     if (typeof window !== "undefined") window.scrollTo(0, 0);
   };
+
+  const showChrome = stage === "hero" || stage === "results" || stage === "noSell";
 
   return (
     <main className="relative min-h-screen overflow-hidden">
@@ -88,7 +96,11 @@ export default function Home() {
         )}
         {stage === "form" && (
           <motion.div key="form" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -20 }} transition={{ duration: 0.5 }}>
-            <QualificationForm onComplete={handleFormComplete} onExit={() => setStage("hero")} />
+            <QualificationForm
+              onComplete={handleFormComplete}
+              onNoSell={handleNoSell}
+              onExit={() => setStage("hero")}
+            />
           </motion.div>
         )}
         {stage === "loading" && (
@@ -101,11 +113,16 @@ export default function Home() {
             <ResultsScreen analyze={analyze} answers={answers} onRestart={restart} />
           </motion.div>
         )}
+        {stage === "noSell" && answers && (
+          <motion.div key="noSell" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
+            <NoSellScreen answers={answers} onRestart={restart} />
+          </motion.div>
+        )}
       </AnimatePresence>
 
-      {/* Logos + badge courtier — visibles sur le hero et les résultats */}
+      {/* Logos + badge courtier — visibles sur le hero, les résultats et la page no-sell */}
       <AnimatePresence>
-        {(stage === "hero" || stage === "results") && (
+        {showChrome && (
           <motion.div
             key="brand-chrome"
             initial={{ opacity: 0 }}

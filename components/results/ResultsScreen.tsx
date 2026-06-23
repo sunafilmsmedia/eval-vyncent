@@ -11,25 +11,31 @@ interface Props {
   onRestart: () => void;
 }
 
-const VERDICT_META: Record<Verdict, { label: string; color: string; bg: string; ring: string }> = {
+const VERDICT_BADGE: Record<Verdict, { label: string; color: string; bg: string; ring: string }> = {
   favorable: {
-    label: "Moment favorable",
+    label: "Moment idéal",
     color: "text-emerald-300",
     bg: "bg-emerald-500/10",
     ring: "ring-emerald-500/30",
   },
   moyen: {
-    label: "Moment neutre",
+    label: "Prêt à vendre",
     color: "text-amber-300",
     bg: "bg-amber-500/10",
     ring: "ring-amber-500/30",
   },
   defavorable: {
-    label: "Moment défavorable",
+    label: "Pas encore prêt",
     color: "text-rose-300",
     bg: "bg-rose-500/10",
     ring: "ring-rose-500/30",
   },
+};
+
+const VERDICT_HEADLINE: Record<Verdict, string> = {
+  favorable: "C'est le moment idéal !",
+  moyen: "Tu es prêt à vendre !",
+  defavorable: "Tu n'es pas prêt encore.",
 };
 
 type SubmissionState =
@@ -38,7 +44,8 @@ type SubmissionState =
 
 export default function ResultsScreen({ analyze, answers, onRestart }: Props) {
   const { scoring, report } = analyze;
-  const meta = VERDICT_META[scoring.verdict];
+  const badge = VERDICT_BADGE[scoring.verdict];
+  const verdictHeadline = VERDICT_HEADLINE[scoring.verdict];
   const [submission, setSubmission] = useState<SubmissionState>({ kind: "pending" });
 
   return (
@@ -50,21 +57,21 @@ export default function ResultsScreen({ analyze, answers, onRestart }: Props) {
         transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
         className="flex justify-center mb-8"
       >
-        <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full ${meta.bg} ring-1 ${meta.ring}`}>
-          <span className={`w-2 h-2 rounded-full ${meta.color.replace("text-", "bg-")}`} />
-          <span className={`text-xs font-medium tracking-wide ${meta.color}`}>{meta.label}</span>
+        <div className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full ${badge.bg} ring-1 ${badge.ring}`}>
+          <span className={`w-2 h-2 rounded-full ${badge.color.replace("text-", "bg-")}`} />
+          <span className={`text-xs font-medium tracking-wide ${badge.color}`}>{badge.label}</span>
         </div>
       </motion.div>
 
-      {/* Headline */}
+      {/* Headline — verdict en gros, puis résumé IA */}
       <motion.div
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.7, delay: 0.1, ease: [0.16, 1, 0.3, 1] }}
         className="text-center mb-12"
       >
-        <h1 className="font-serif text-3xl sm:text-4xl lg:text-5xl text-[var(--color-brand-100)] leading-[1.15] tracking-tight text-balance">
-          {report.headline}
+        <h1 className="font-serif text-4xl sm:text-5xl lg:text-6xl text-[var(--color-brand-100)] leading-[1.05] tracking-tight text-balance">
+          {verdictHeadline}
         </h1>
         <p className="mt-5 text-base sm:text-lg text-slate-400 leading-relaxed text-balance max-w-2xl mx-auto">
           {report.summary}
@@ -109,7 +116,11 @@ export default function ResultsScreen({ analyze, answers, onRestart }: Props) {
           onSubmitted={(r) => setSubmission({ kind: "done", ...r })}
         />
       ) : (
-        <ConfirmationBlock stored={submission.stored} firstName={submission.firstName} />
+        <ConfirmationBlock
+          stored={submission.stored}
+          firstName={submission.firstName}
+          verdict={scoring.verdict}
+        />
       )}
 
       {/* Market insight */}
@@ -218,7 +229,16 @@ export default function ResultsScreen({ analyze, answers, onRestart }: Props) {
   );
 }
 
-function ConfirmationBlock({ stored, firstName }: { stored: boolean; firstName: string }) {
+function ConfirmationBlock({
+  stored,
+  firstName,
+  verdict,
+}: {
+  stored: boolean;
+  firstName: string;
+  verdict: Verdict;
+}) {
+  const isNewsletter = verdict === "defavorable";
   return (
     <motion.div
       initial={{ opacity: 0, y: 16 }}
@@ -238,14 +258,25 @@ function ConfirmationBlock({ stored, firstName }: { stored: boolean; firstName: 
               <path d="M3 7L10 3L17 7M3 7V15A2 2 0 0 0 5 17H15A2 2 0 0 0 17 15V7M3 7L10 11L17 7" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             <p className="font-serif text-xl sm:text-2xl text-[var(--color-brand-100)]">
-              Merci {firstName}, ton plan arrive.
+              {isNewsletter
+                ? `Merci ${firstName}, c'est bien noté.`
+                : `Merci ${firstName}, ton analyse arrive.`}
             </p>
           </div>
           <p className="text-sm sm:text-base text-slate-300 leading-relaxed">
-            Tu vas recevoir tes démarches personnalisées par courriel dans les prochaines
-            minutes. Vyncent ou un membre de son équipe pourrait aussi te joindre dans
-            les 24 prochaines heures ouvrables si tu veux discuter de ton dossier. Aucune
-            pression — juste une conversation honnête quand tu seras prêt.
+            {isNewsletter ? (
+              <>
+                Tu vas recevoir nos mises à jour du marché de ton secteur par courriel.
+                Aucun courtier ne va t&apos;appeler — c&apos;est juste de l&apos;information.
+              </>
+            ) : (
+              <>
+                Tu vas recevoir ton analyse gratuite par courriel dans les prochaines
+                minutes. Vyncent ou un membre de son équipe te joindra dans les 24
+                prochaines heures ouvrables pour confirmer les résultats et répondre à tes
+                questions.
+              </>
+            )}
           </p>
         </>
       ) : (
@@ -256,14 +287,12 @@ function ConfirmationBlock({ stored, firstName }: { stored: boolean; firstName: 
               <path d="M7 10 L9.5 12.5 L14 8" strokeLinecap="round" strokeLinejoin="round" />
             </svg>
             <p className="font-serif text-xl sm:text-2xl text-[var(--color-gold-soft)]">
-              Tes coordonnées ont été supprimées.
+              Tes coordonnées n&apos;ont pas été conservées.
             </p>
           </div>
           <p className="text-sm sm:text-base text-[var(--color-gold-soft)]/85 leading-relaxed">
-            Comme promis, puisque l&apos;analyse conclut que ce n&apos;est pas le bon moment
-            pour vendre, ton nom, ton téléphone et ton courriel ont été automatiquement
-            supprimés. Aucun courtier ne te contactera. Tu peux revenir nous voir quand tu
-            seras prêt — l&apos;analyse reste à ta disposition ici.
+            Si tu veux malgré tout recevoir nos mises à jour du marché, reviens nous voir.
+            L&apos;analyse reste à ta disposition ici.
           </p>
         </>
       )}
@@ -323,9 +352,9 @@ function ScoreCard({ score, verdict }: { score: number; verdict: Verdict }) {
 
         <p className="mt-4 text-sm text-[var(--color-brand-200)]/80">
           {verdict === "favorable"
-            ? "Les conditions sont réunies pour envisager une mise en marché."
+            ? "Les conditions sont parfaitement alignées."
             : verdict === "moyen"
-            ? "Quelques éléments à optimiser avant d'agir."
+            ? "Tu peux avancer, quelques optimisations restent possibles."
             : "Le moment actuel suggère la patience."}
         </p>
       </div>

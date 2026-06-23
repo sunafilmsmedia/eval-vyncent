@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { computeScoring } from "@/lib/scoring";
 import { REGIONS } from "@/lib/regions";
-import type { Answers, LeadPayload } from "@/lib/types";
+import type { Answers, LeadPayload, LeadType } from "@/lib/types";
 
 export const runtime = "nodejs";
 
 interface IncomingBody extends Partial<LeadPayload> {
   answers?: Answers;
+  leadType?: LeadType;
 }
 
 function splitName(full: string): { firstName: string; lastName: string } {
@@ -24,9 +25,8 @@ export async function POST(req: Request) {
   }
 
   const { name, phone, email, consent, answers } = body;
+  const leadType: LeadType = body.leadType ?? "evaluation";
 
-  // Email maintenant requis (capture déplacée après les résultats),
-  // téléphone optionnel.
   if (!name || !email || !consent || !answers) {
     return NextResponse.json(
       { stored: false, error: "Missing required fields" },
@@ -34,10 +34,14 @@ export async function POST(req: Request) {
     );
   }
 
-  const scoring = computeScoring(answers);
+  // Scoring uniquement pour les leads d'évaluation (le market_info bypass).
+  const scoring =
+    leadType === "evaluation" ? computeScoring(answers) : null;
 
-  // Promesse critique : si verdict défavorable, on ne stocke RIEN, on ne transmet RIEN.
-  if (scoring.verdict === "defavorable") {
+  // Promesse critique pour les évaluations : si verdict défavorable, on ne
+  // stocke rien et on ne transmet rien. Les market_info (intérêt aux ventes
+  // du secteur sans intention de vendre) sont toujours stockés.
+  if (leadType === "evaluation" && scoring && scoring.verdict === "defavorable") {
     return NextResponse.json({
       stored: false,
       reason: "verdict_defavorable",
@@ -46,36 +50,31 @@ export async function POST(req: Request) {
 
   const { firstName, lastName } = splitName(name);
   const regionName = REGIONS.find((r) => r.id === answers.region)?.name ?? "";
-  const appreciationPct = Math.round(scoring.metrics.appreciation * 1000) / 10;
-  const annualizedPct = Math.round(scoring.metrics.annualizedReturn * 1000) / 10;
-  const gain = (answers.estimatedValue ?? 0) - (answers.purchasePrice ?? 0);
 
-  // Payload aplati pour faciliter le mapping dans le workflow GHL,
-  // tout en gardant les données originales nestées en complément.
+  // Payload aplati pour mapping GHL direct + données brutes en complément.
   const payload = {
     source: "vyncent-ledoux-app",
     receivedAt: new Date().toISOString(),
 
-    // Contact (mapping direct vers les champs standards GHL)
+    // Type de lead — permet à GHL de router via le workflow
+    leadType,
+
+    // Contact
     firstName,
     lastName,
     fullName: name,
-    phone,
-    email: email ?? "",
+    phone: phone ?? "",
+    email,
 
-    // Scoring
-    score: scoring.score,
-    verdict: scoring.verdict,
-    appreciationPct,
-    annualizedReturnPct: annualizedPct,
-    gainEstime: gain,
+    // Scoring (vide pour market_info)
+    score: scoring?.score ?? null,
+    verdict: scoring?.verdict ?? null,
 
-    // Détails propriété (champs personnalisés GHL faciles à mapper)
+    // Détails propriété
     propertyType: answers.propertyType ?? "",
+    sellingMotivation: answers.sellingMotivation ?? "",
     yearsOwned: answers.yearsOwned ?? 0,
-    purchasePrice: answers.purchasePrice ?? 0,
     estimatedValue: answers.estimatedValue ?? 0,
-    mortgageStatus: answers.mortgageStatus ?? "",
     region: regionName,
     regionId: answers.region ?? "",
     financialProfile: answers.financialProfile ?? "",
@@ -83,9 +82,11 @@ export async function POST(req: Request) {
     childrenStatus: answers.childrenStatus ?? "",
     noChildrenPlan: answers.noChildrenPlan ?? "",
 
-    // Données brutes originales pour référence complète
+    // Données brutes
     lead: { name, phone, email },
-    scoring: { score: scoring.score, verdict: scoring.verdict },
+    scoring: scoring
+      ? { score: scoring.score, verdict: scoring.verdict }
+      : null,
     answers,
   };
 
@@ -111,5 +112,9 @@ export async function POST(req: Request) {
     console.log("[lead] Stored (no webhook configured):", JSON.stringify(payload));
   }
 
-  return NextResponse.json({ stored: true, verdict: scoring.verdict });
+  return NextResponse.json({
+    stored: true,
+    verdict: scoring?.verdict ?? null,
+    leadType,
+  });
 }

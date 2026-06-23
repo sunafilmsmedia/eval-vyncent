@@ -1,6 +1,6 @@
 export type PropertyType = "maison" | "condo" | "plex" | "chalet";
 
-export type MortgageStatus = "payee" | "moins_25" | "25_50" | "plus_50" | "incertain";
+export type SellingMotivation = "upsize" | "downsize" | "relocation" | "no_sell";
 
 export type ChildrenStatus = "partis" | "partent_3_ans" | "encore_maison" | "manque_espace";
 
@@ -23,10 +23,9 @@ export type Region = {
 
 export interface Answers {
   propertyType?: PropertyType;
+  sellingMotivation?: SellingMotivation;
   yearsOwned?: number;
-  purchasePrice?: number;
   estimatedValue?: number;
-  mortgageStatus?: MortgageStatus;
   hasChildren?: boolean;
   childrenStatus?: ChildrenStatus;
   noChildrenPlan?: NoChildrenPlan;
@@ -41,9 +40,8 @@ export interface ScoringResult {
   verdict: Verdict;
   factors: ScoringFactor[];
   metrics: {
-    appreciation: number;
-    annualizedReturn: number;
     yearsOwned: number;
+    estimatedValue: number;
   };
 }
 
@@ -78,10 +76,13 @@ export interface AnalyzeResponse {
   generatedBy: "claude" | "fallback";
 }
 
+export type LeadType = "evaluation" | "market_info";
+
 export interface LeadPayload {
   name: string;
-  phone: string;
-  email?: string;
+  phone?: string;
+  email: string;
   consent: boolean;
   answers: Answers;
+  leadType?: LeadType;
 }

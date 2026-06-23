@@ -1,36 +1,40 @@
 import type { Answers, Report, ScoringResult } from "./types";
+import { formatCurrency } from "./format";
 
-function pct(n: number, digits = 0) {
-  const sign = n > 0 ? "+" : "";
-  return `${sign}${(n * 100).toFixed(digits)} %`;
-}
+const VERDICT_HEADLINE = {
+  favorable: "C'est le moment idéal !",
+  moyen: "Tu es prêt à vendre !",
+  defavorable: "Tu n'es pas prêt encore.",
+} as const;
+
+const PROPERTY_LABEL: Record<string, string> = {
+  maison: "Maison unifamiliale",
+  condo: "Condo",
+  plex: "Plex",
+  chalet: "Chalet",
+};
+
+const MOTIVATION_LABEL: Record<string, string> = {
+  upsize: "Passer à plus grand",
+  downsize: "Réduire / simplifier",
+  relocation: "Déménager ailleurs",
+  no_sell: "Pas de vente prévue",
+};
 
 export function buildFallbackReport(answers: Answers, scoring: ScoringResult): Report {
   const { score, verdict, metrics } = scoring;
-  const value = answers.estimatedValue ?? 0;
-  const purchase = answers.purchasePrice ?? 0;
-  const gain = value - purchase;
 
-  const headlineByVerdict: Record<typeof verdict, string> = {
-    favorable:
-      "Les indicateurs sont alignés — c'est un moment naturel pour envisager la vente.",
-    moyen:
-      "Le moment est correct, mais certains éléments méritent une discussion avant d'agir.",
-    defavorable:
-      "Le timing actuel n'est pas optimal — mieux vaut consolider ta position avant de vendre.",
+  const summaryByVerdict = {
+    favorable: `Avec ${metrics.yearsOwned} année${metrics.yearsOwned > 1 ? "s" : ""} de possession et ta situation actuelle, tous les signaux pointent vers une vente avantageuse. C'est rare d'avoir un alignement aussi complet — autant en profiter pendant que la fenêtre est ouverte.`,
+    moyen: `Tu as accumulé une bonne équité et ta situation s'y prête bien. Quelques optimisations préalables pourraient maximiser ton retour, mais tu peux clairement avancer vers une mise en marché.`,
+    defavorable: `Quelques éléments freinent encore l'opportunité — équité, situation familiale ou financière. Mieux vaut consolider ta position avant de mettre en marché. Reviens nous voir dans 12 à 24 mois.`,
   };
 
-  const summaryByVerdict: Record<typeof verdict, string> = {
-    favorable: `Tu as accumulé environ ${pct(metrics.appreciation)} de plus-value sur ${metrics.yearsOwned || "quelques"} ans. Avec ta situation actuelle, vendre maintenant te placerait dans une position de force pour ton prochain projet.`,
-    moyen: `Tu as ${pct(metrics.appreciation)} de plus-value, mais quelques éléments (financement, équité ou contexte familial) freinent un peu le potentiel. Une conversation avec un courtier permettrait d'évaluer si quelques mois changeraient le portrait.`,
-    defavorable: `Ta plus-value (${pct(metrics.appreciation)}) ou ton équité actuelle ne justifient pas une vente précipitée. Tes coordonnées seront supprimées comme promis — on te recommande de réévaluer dans 12 à 24 mois.`,
-  };
-
-  const marketInsightByVerdict: Record<typeof verdict, string> = {
+  const marketInsightByVerdict = {
     favorable:
       "Le marché de l'Outaouais reste soutenu par la demande des acheteurs venant d'Ottawa. Les propriétés bien préparées se vendent généralement en moins de 45 jours.",
     moyen:
-      "Le marché de l'Outaouais est en transition : les acheteurs prennent plus de temps, mais les bonnes propriétés trouvent toujours preneur au juste prix.",
+      "Le marché de l'Outaouais est en transition : les acheteurs prennent un peu plus de temps, mais les bonnes propriétés trouvent toujours preneur au juste prix.",
     defavorable:
       "Le marché actuel favorise davantage les acheteurs sur certains segments. Patienter peut permettre de capitaliser sur une remontée des évaluations.",
   };
@@ -47,28 +51,24 @@ export function buildFallbackReport(answers: Answers, scoring: ScoringResult): R
           : "Mieux vaut attendre.",
     },
     {
-      label: "Plus-value estimée",
-      value: pct(metrics.appreciation),
-      detail:
-        gain > 0
-          ? `Soit environ ${gain.toLocaleString("fr-CA", { style: "currency", currency: "CAD", maximumFractionDigits: 0 })} de gain brut.`
-          : "Position de retrait actuellement.",
-    },
-    {
       label: "Années de possession",
       value: `${metrics.yearsOwned} an${metrics.yearsOwned > 1 ? "s" : ""}`,
       detail:
         metrics.yearsOwned >= 6
           ? "Équité bien établie."
-          : "Équité en construction.",
+          : metrics.yearsOwned >= 3
+          ? "Équité en construction."
+          : "Équité encore jeune.",
     },
     {
-      label: "Rendement annualisé",
-      value: `${(metrics.annualizedReturn * 100).toFixed(1)} %/an`,
-      detail:
-        metrics.annualizedReturn >= 0.04
-          ? "Au-dessus de la moyenne du marché."
-          : "Sous la moyenne historique du marché.",
+      label: "Valeur estimée",
+      value: metrics.estimatedValue ? formatCurrency(metrics.estimatedValue) : "—",
+      detail: "Selon ton estimation actuelle du marché.",
+    },
+    {
+      label: "Motivation",
+      value: answers.sellingMotivation ? MOTIVATION_LABEL[answers.sellingMotivation] : "—",
+      detail: `Type : ${answers.propertyType ? PROPERTY_LABEL[answers.propertyType] : "—"}`,
     },
   ];
 
@@ -145,7 +145,7 @@ export function buildFallbackReport(answers: Answers, scoring: ScoringResult): R
     verdict === "favorable" ? stepsFavorable : verdict === "moyen" ? stepsMoyen : stepsDefavorable;
 
   return {
-    headline: headlineByVerdict[verdict],
+    headline: VERDICT_HEADLINE[verdict],
     summary: summaryByVerdict[verdict],
     stats,
     steps,

@@ -2,10 +2,9 @@ import type { Answers } from "./types";
 
 export type QuestionId =
   | "propertyType"
+  | "sellingMotivation"
   | "yearsOwned"
-  | "purchasePrice"
   | "estimatedValue"
-  | "mortgageStatus"
   | "hasChildren"
   | "childrenStatus"
   | "noChildrenPlan"
@@ -50,36 +49,29 @@ export const QUESTIONS: QuestionDef[] = [
     ],
   },
   {
+    id: "sellingMotivation",
+    kind: "choice",
+    title: "Pourquoi penses-tu vendre ?",
+    subtitle: "C'est ce qui motive ta réflexion.",
+    autoAdvance: true,
+    choices: [
+      { value: "upsize", label: "Pour passer à plus grand", hint: "Besoin de plus d'espace" },
+      { value: "downsize", label: "Pour réduire ou simplifier", hint: "Moins d'entretien, moins grand" },
+      { value: "relocation", label: "Pour déménager ailleurs", hint: "Autre secteur ou autre région" },
+      { value: "no_sell", label: "Je ne veux pas vendre", hint: "Je suis simplement curieux" },
+    ],
+  },
+  {
     id: "yearsOwned",
     kind: "number",
     title: "Depuis combien d'années es-tu propriétaire ?",
     subtitle: "Une estimation suffit.",
   },
   {
-    id: "purchasePrice",
-    kind: "currency",
-    title: "Quel a été le prix d'achat ?",
-    subtitle: "Ce que tu as payé à l'origine.",
-  },
-  {
     id: "estimatedValue",
     kind: "currency",
-    title: "Pour combien tu penses qu'elle vaut aujourd'hui ?",
+    title: "Combien penses-tu qu'elle vaut aujourd'hui ?",
     subtitle: "Ton estimation à toi — pas besoin d'être exact.",
-  },
-  {
-    id: "mortgageStatus",
-    kind: "choice",
-    title: "Où en es-tu avec ton hypothèque ?",
-    subtitle: "Cela influence ta marge de manœuvre.",
-    autoAdvance: true,
-    choices: [
-      { value: "payee", label: "Entièrement payée" },
-      { value: "moins_25", label: "Moins de 25 % restants" },
-      { value: "25_50", label: "Entre 25 % et 50 %" },
-      { value: "plus_50", label: "Plus de 50 %" },
-      { value: "incertain", label: "Je ne suis pas certain" },
-    ],
   },
   {
     id: "hasChildren",
@@ -145,10 +137,9 @@ export function getVisibleQuestions(answers: Answers): QuestionDef[] {
 export function isAnswered(q: QuestionDef, a: Answers): boolean {
   switch (q.id) {
     case "propertyType": return !!a.propertyType;
+    case "sellingMotivation": return !!a.sellingMotivation;
     case "yearsOwned": return typeof a.yearsOwned === "number" && a.yearsOwned >= 0;
-    case "purchasePrice": return typeof a.purchasePrice === "number" && a.purchasePrice > 0;
     case "estimatedValue": return typeof a.estimatedValue === "number" && a.estimatedValue > 0;
-    case "mortgageStatus": return !!a.mortgageStatus;
     case "hasChildren": return typeof a.hasChildren === "boolean";
     case "childrenStatus": return !!a.childrenStatus;
     case "noChildrenPlan": return !!a.noChildrenPlan;
