@@ -3,8 +3,10 @@
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 
+export type RevealChoice = "yes" | "no";
+
 interface Props {
-  onContinue: () => void;
+  onContinue: (choice: RevealChoice) => void;
 }
 
 // Délai avant que les boutons soient cliquables.
@@ -19,9 +21,9 @@ export default function PreRevealScreen({ onContinue }: Props) {
     return () => clearTimeout(t);
   }, []);
 
-  const handleClick = () => {
+  const handleClick = (choice: RevealChoice) => {
     if (!ready) return;
-    onContinue();
+    onContinue(choice);
   };
 
   return (
@@ -59,7 +61,7 @@ export default function PreRevealScreen({ onContinue }: Props) {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3, duration: 0.6 }}
-          onClick={handleClick}
+          onClick={() => handleClick("yes")}
           disabled={!ready}
           className="
             group mt-10 w-full
@@ -101,7 +103,7 @@ export default function PreRevealScreen({ onContinue }: Props) {
           initial={{ opacity: 0 }}
           animate={{ opacity: 0.7 }}
           transition={{ delay: 0.6, duration: 0.6 }}
-          onClick={handleClick}
+          onClick={() => handleClick("no")}
           disabled={!ready}
           className="
             mt-6 mx-auto

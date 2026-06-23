@@ -23,6 +23,7 @@ export default function Home() {
   const [stage, setStage] = useState<Stage>("hero");
   const [answers, setAnswers] = useState<Answers | null>(null);
   const [analyze, setAnalyze] = useState<AnalyzeResponse | null>(null);
+  const [revealChoice, setRevealChoice] = useState<"yes" | "no">("no");
 
   const handleFormComplete = async (finalAnswers: Answers) => {
     setAnswers(finalAnswers);
@@ -58,7 +59,8 @@ export default function Home() {
     }, remaining);
   };
 
-  const revealResults = () => {
+  const revealResults = (choice: "yes" | "no") => {
+    setRevealChoice(choice);
     setStage("results");
     if (typeof window !== "undefined") window.scrollTo(0, 0);
   };
@@ -72,6 +74,7 @@ export default function Home() {
   const restart = () => {
     setAnswers(null);
     setAnalyze(null);
+    setRevealChoice("no");
     setStage("hero");
     if (typeof window !== "undefined") window.scrollTo(0, 0);
   };
@@ -123,7 +126,12 @@ export default function Home() {
         )}
         {stage === "results" && analyze && answers && (
           <motion.div key="results" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.6 }}>
-            <ResultsScreen analyze={analyze} answers={answers} onRestart={restart} />
+            <ResultsScreen
+              analyze={analyze}
+              answers={answers}
+              revealChoice={revealChoice}
+              onRestart={restart}
+            />
           </motion.div>
         )}
         {stage === "noSell" && answers && (

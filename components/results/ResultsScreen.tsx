@@ -8,6 +8,10 @@ import ContactForm from "./ContactForm";
 interface Props {
   analyze: AnalyzeResponse;
   answers: Answers;
+  // "yes" → la personne s'est engagée à recevoir l'analyse :
+  //   on bloque le contenu derrière le ContactForm
+  // "no" → on montre les résultats directement
+  revealChoice: "yes" | "no";
   onRestart: () => void;
 }
 
@@ -42,11 +46,69 @@ type SubmissionState =
   | { kind: "pending" }
   | { kind: "done"; stored: boolean; firstName: string };
 
-export default function ResultsScreen({ analyze, answers, onRestart }: Props) {
+export default function ResultsScreen({ analyze, answers, revealChoice, onRestart }: Props) {
   const { scoring, report } = analyze;
   const badge = VERDICT_BADGE[scoring.verdict];
   const verdictHeadline = VERDICT_HEADLINE[scoring.verdict];
   const [submission, setSubmission] = useState<SubmissionState>({ kind: "pending" });
+
+  // Quand la personne a choisi "Oui, je veux voir la réponse" et n'a pas
+  // encore soumis ses coordonnées, on bloque tout le contenu derrière le
+  // ContactForm. Le verdict n'est pas visible (pas d'indices).
+  const isGated = revealChoice === "yes" && submission.kind === "pending";
+
+  if (isGated) {
+    return (
+      <div className="min-h-screen px-5 sm:px-8 py-12 sm:py-16 max-w-xl mx-auto w-full">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+          className="text-center"
+        >
+          {/* Icône cadenas avec halo */}
+          <div className="relative mx-auto mb-7 w-16 h-16">
+            <div className="absolute inset-0 rounded-full bg-[var(--color-brand-500)]/20 blur-xl" />
+            <div className="relative w-16 h-16 rounded-full bg-gradient-to-br from-[var(--color-brand-500)] to-[var(--color-brand-700)] border border-white/10 flex items-center justify-center shadow-[0_10px_40px_-10px_rgba(58,109,255,0.5)]">
+              <svg className="w-7 h-7 text-white" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.8">
+                <rect x="4" y="9" width="12" height="9" rx="2" />
+                <path d="M7 9V6.5C7 4.8 8.3 3.5 10 3.5C11.7 3.5 13 4.8 13 6.5V9" />
+              </svg>
+            </div>
+          </div>
+
+          <p className="text-[11px] uppercase tracking-[0.25em] text-[var(--color-brand-300)] mb-3">
+            Analyse complète disponible
+          </p>
+          <h1 className="font-serif text-4xl sm:text-5xl text-[var(--color-brand-100)] leading-[1.1] tracking-tight text-balance">
+            Ton analyse est prête.
+          </h1>
+          <p className="mt-5 text-base sm:text-lg text-slate-400 leading-relaxed text-balance max-w-md mx-auto">
+            Laisse-nous ton contact pour la débloquer et recevoir ton appel personnalisé
+            avec Vyncent.
+          </p>
+        </motion.div>
+
+        <div className="mt-10">
+          <ContactForm
+            answers={answers}
+            verdict={scoring.verdict}
+            gated
+            onSubmitted={(r) => setSubmission({ kind: "done", ...r })}
+          />
+        </div>
+
+        <div className="mt-10 text-center">
+          <button
+            onClick={onRestart}
+            className="text-xs text-slate-500 hover:text-[var(--color-brand-200)] transition-colors"
+          >
+            Retour à l&apos;accueil
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen px-5 sm:px-8 py-10 sm:py-14 max-w-3xl mx-auto w-full">
