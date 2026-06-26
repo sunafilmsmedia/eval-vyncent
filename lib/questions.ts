@@ -9,6 +9,7 @@ export type QuestionId =
   | "childrenStatus"
   | "noChildrenPlan"
   | "financialProfile"
+  | "hasContract"
   | "region";
 
 export type QuestionKind =
@@ -123,6 +124,13 @@ export const QUESTIONS: QuestionDef[] = [
     ],
   },
   {
+    id: "hasContract",
+    kind: "boolean",
+    title: "Tu travailles déjà avec un courtier ?",
+    subtitle: "Question légale — on ne peut pas évaluer une propriété déjà sous contrat.",
+    autoAdvance: true,
+  },
+  {
     id: "region",
     kind: "region",
     title: "Dans quel secteur se trouve ta propriété ?",
@@ -144,6 +152,12 @@ export function isAnswered(q: QuestionDef, a: Answers): boolean {
     case "childrenStatus": return !!a.childrenStatus;
     case "noChildrenPlan": return !!a.noChildrenPlan;
     case "financialProfile": return !!a.financialProfile;
+    case "hasContract":
+      // "Non" = on peut continuer. "Oui" = bloqué SAUF si la personne
+      // clique "Je veux changer" (wantsToSwitch = true).
+      if (a.hasContract === false) return true;
+      if (a.hasContract === true && a.wantsToSwitch === true) return true;
+      return false;
     case "region": return !!a.region;
   }
 }

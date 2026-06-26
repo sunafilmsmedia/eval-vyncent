@@ -30,6 +30,12 @@ export interface Answers {
   childrenStatus?: ChildrenStatus;
   noChildrenPlan?: NoChildrenPlan;
   financialProfile?: FinancialProfile;
+  // hasContract = true bloque le formulaire (la personne est déjà
+  // sous contrat avec un autre courtier — légalement on ne peut pas
+  // l'évaluer). wantsToSwitch = true permet de débloquer (l'utilisateur
+  // veut changer de courtier).
+  hasContract?: boolean;
+  wantsToSwitch?: boolean;
   region?: string;
 }
 

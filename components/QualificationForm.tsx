@@ -10,6 +10,7 @@ import BooleanQuestion from "./questions/BooleanQuestion";
 import NumberQuestion from "./questions/NumberQuestion";
 import CurrencyQuestion from "./questions/CurrencyQuestion";
 import RegionMap from "./questions/RegionMap";
+import ExistingBrokerBlocker from "./questions/ExistingBrokerBlocker";
 
 interface Props {
   onComplete: (answers: Answers) => void;
@@ -29,6 +30,12 @@ export default function QualificationForm({ onComplete, onNoSell, onExit }: Prop
   const current = visible[Math.min(index, visible.length - 1)];
   const isLast = index >= visible.length - 1;
   const canProceed = current ? isAnswered(current, answers) : false;
+
+  // Le blocker "tu as déjà un courtier" remplace la question pour ce step.
+  const isBlocked =
+    current?.id === "hasContract" &&
+    answers.hasContract === true &&
+    answers.wantsToSwitch !== true;
 
   const submit = useCallback(() => {
     if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
@@ -59,13 +66,16 @@ export default function QualificationForm({ onComplete, onNoSell, onExit }: Prop
           if (partial.hasChildren === true) delete next.noChildrenPlan;
           if (partial.hasChildren === false) delete next.childrenStatus;
         }
+        // Réinitialiser wantsToSwitch si on change la réponse à hasContract
+        if ("hasContract" in partial && partial.hasContract !== true) {
+          delete next.wantsToSwitch;
+        }
         nextAnswers = next;
         return next;
       });
 
       // Court-circuit : si la personne dit qu'elle ne veut pas vendre,
-      // on saute le reste du questionnaire et on lui propose de
-      // s'abonner aux ventes de son secteur.
+      // on saute le reste du questionnaire.
       if (partial.sellingMotivation === "no_sell") {
         if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
         autoAdvanceTimer.current = setTimeout(() => {
@@ -74,7 +84,12 @@ export default function QualificationForm({ onComplete, onNoSell, onExit }: Prop
         return;
       }
 
-      if (autoAdvance) {
+      // Bloque l'auto-advance quand hasContract=true sans wantsToSwitch :
+      // le composant ExistingBrokerBlocker prend le relais.
+      const wouldBeBlocked =
+        nextAnswers.hasContract === true && nextAnswers.wantsToSwitch !== true;
+
+      if (autoAdvance && !wouldBeBlocked) {
         if (autoAdvanceTimer.current) clearTimeout(autoAdvanceTimer.current);
         autoAdvanceTimer.current = setTimeout(() => {
           setDirection(1);
@@ -125,14 +140,16 @@ export default function QualificationForm({ onComplete, onNoSell, onExit }: Prop
             exit={{ opacity: 0, x: direction * -60 }}
             transition={{ duration: 0.45, ease: [0.16, 1, 0.3, 1] }}
           >
-            <div className="mb-7 sm:mb-9">
-              <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl text-[var(--color-brand-100)] leading-tight tracking-tight text-balance">
-                {current.title}
-              </h2>
-              {current.subtitle && (
-                <p className="mt-2.5 text-sm sm:text-base text-slate-400">{current.subtitle}</p>
-              )}
-            </div>
+            {!isBlocked && (
+              <div className="mb-7 sm:mb-9">
+                <h2 className="font-serif text-2xl sm:text-3xl lg:text-4xl text-[var(--color-brand-100)] leading-tight tracking-tight text-balance">
+                  {current.title}
+                </h2>
+                {current.subtitle && (
+                  <p className="mt-2.5 text-sm sm:text-base text-slate-400">{current.subtitle}</p>
+                )}
+              </div>
+            )}
 
             <QuestionRenderer
               questionId={current.id}
@@ -290,6 +307,23 @@ function QuestionRenderer({
           choices={choices!}
           value={answers.financialProfile}
           onChange={(v) => onUpdate({ financialProfile: v as Answers["financialProfile"] }, autoAdvance)}
+        />
+      );
+    case "hasContract":
+      // Quand hasContract=true sans wantsToSwitch, on remplace la question
+      // par le blocker légal qui propose "Je veux changer" pour débloquer.
+      if (answers.hasContract === true && answers.wantsToSwitch !== true) {
+        return (
+          <ExistingBrokerBlocker
+            onWantsToSwitch={() => onUpdate({ wantsToSwitch: true }, true)}
+            onCancel={() => onUpdate({ hasContract: undefined, wantsToSwitch: undefined }, false)}
+          />
+        );
+      }
+      return (
+        <BooleanQuestion
+          value={answers.hasContract}
+          onChange={(v) => onUpdate({ hasContract: v }, autoAdvance)}
         />
       );
     case "region":

@@ -81,6 +81,10 @@ export async function POST(req: Request) {
     hasChildren: answers.hasChildren ?? false,
     childrenStatus: answers.childrenStatus ?? "",
     noChildrenPlan: answers.noChildrenPlan ?? "",
+    // Signal critique : la personne est déjà sous contrat MAIS veut changer
+    // (lead de "poaching" — info précieuse pour le courtier)
+    hasContract: answers.hasContract ?? false,
+    wantsToSwitch: answers.wantsToSwitch ?? false,
 
     // Données brutes
     lead: { name, phone, email },
