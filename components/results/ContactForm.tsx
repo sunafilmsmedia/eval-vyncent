@@ -30,6 +30,12 @@ export default function ContactForm({ answers, verdict, onSubmitted, gated }: Pr
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
       return setError("Format de courriel invalide.");
     }
+    if (!phone.trim()) return setError("Ton téléphone est requis.");
+    // Validation téléphone : au moins 10 chiffres (Amérique du Nord)
+    const digits = phone.replace(/\D/g, "");
+    if (digits.length < 10) {
+      return setError("Numéro de téléphone invalide.");
+    }
     if (!consent) return setError("Merci de cocher la case de consentement.");
 
     setSubmitting(true);
@@ -139,13 +145,14 @@ export default function ContactForm({ answers, verdict, onSubmitted, gated }: Pr
           placeholder="Marie"
         />
         <Field
-          label="Téléphone (optionnel)"
+          label="Téléphone"
+          required
           type="tel"
           autoComplete="tel"
           value={phone}
           onChange={setPhone}
           placeholder="(819) 555-0123"
-          helper="Au besoin, pour un suivi plus rapide."
+          helper="Pour qu'un courtier puisse te joindre rapidement."
         />
       </div>
 
