@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import dynamic from "next/dynamic";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Hero from "@/components/Hero";
 import BrokerBadge from "@/components/BrokerBadge";
 import TopLogos from "@/components/TopLogos";
@@ -10,8 +10,15 @@ import QualificationForm from "@/components/QualificationForm";
 import LoadingScreen from "@/components/LoadingScreen";
 import PreRevealScreen from "@/components/PreRevealScreen";
 import NoSellScreen from "@/components/NoSellScreen";
+import LockScreen from "@/components/LockScreen";
 import ResultsScreen from "@/components/results/ResultsScreen";
 import type { AnalyzeResponse, Answers } from "@/lib/types";
+
+// Verrou d'accès temporaire — le code est communiqué au client
+// lors du paiement. Retirer ces 2 lignes + le rendu conditionnel
+// ci-dessous pour désactiver le verrou.
+const UNLOCK_STORAGE_KEY = "eval-vyncent-unlocked";
+const UNLOCK_CODE = "69";
 
 const HeroBackground = dynamic(() => import("@/components/HeroBackground"), { ssr: false });
 
@@ -24,6 +31,21 @@ export default function Home() {
   const [answers, setAnswers] = useState<Answers | null>(null);
   const [analyze, setAnalyze] = useState<AnalyzeResponse | null>(null);
   const [revealChoice, setRevealChoice] = useState<"yes" | "no">("no");
+
+  // Verrou d'accès — null = pas encore vérifié (rien à rendre pour éviter le flash)
+  const [unlocked, setUnlocked] = useState<boolean | null>(null);
+  useEffect(() => {
+    setUnlocked(
+      typeof window !== "undefined" &&
+        window.localStorage.getItem(UNLOCK_STORAGE_KEY) === "true"
+    );
+  }, []);
+  const handleUnlock = () => {
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(UNLOCK_STORAGE_KEY, "true");
+    }
+    setUnlocked(true);
+  };
 
   const handleFormComplete = async (finalAnswers: Answers) => {
     setAnswers(finalAnswers);
@@ -81,6 +103,16 @@ export default function Home() {
 
   const showChrome =
     stage === "hero" || stage === "preReveal" || stage === "results" || stage === "noSell";
+
+  // Verrou : rien tant qu'on ne sait pas, puis LockScreen si non débloqué.
+  if (unlocked === null) return null;
+  if (!unlocked) {
+    return (
+      <main className="min-h-screen">
+        <LockScreen expectedCode={UNLOCK_CODE} onUnlock={handleUnlock} />
+      </main>
+    );
+  }
 
   return (
     <main className="relative min-h-screen overflow-hidden">
